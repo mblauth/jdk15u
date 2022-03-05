@@ -497,7 +497,7 @@ static int sib_encoding(Address::ScaleFactor scale, int index_enc, int base_enc)
 }
 
 inline void Assembler::emit_modrm(int mod, int dst_enc, int src_enc) {
-  assert((mod & 3) != 0b11, "forbidden");
+  assert((mod & 3) != 0x3, "forbidden");
   int modrm = modrm_encoding(mod, dst_enc, src_enc);
   emit_int8(modrm);
 }
@@ -537,18 +537,18 @@ void Assembler::emit_operand_helper(int reg_enc, int base_enc, int index_enc,
           base_enc != rbp->encoding() LP64_ONLY(&& base_enc != r13->encoding())) {
         // [base + index*scale]
         // [00 reg 100][ss index base]
-        emit_modrm_sib(0b00, reg_enc, 0b100,
+        emit_modrm_sib(0x0, reg_enc, 0x4,
                        scale, index_enc, base_enc);
       } else if (emit_compressed_disp_byte(disp) && no_relocation) {
         // [base + index*scale + imm8]
         // [01 reg 100][ss index base] imm8
-        emit_modrm_sib_disp8(0b01, reg_enc, 0b100,
+        emit_modrm_sib_disp8(0x1, reg_enc, 0x4,
                              scale, index_enc, base_enc,
                              disp);
       } else {
         // [base + index*scale + disp32]
         // [10 reg 100][ss index base] disp32
-        emit_modrm_sib(0b10, reg_enc, 0b100,
+        emit_modrm_sib(0x2, reg_enc, 0x4,
                        scale, index_enc, base_enc);
         emit_data(disp, rspec, disp32_operand);
       }
@@ -557,19 +557,19 @@ void Assembler::emit_operand_helper(int reg_enc, int base_enc, int index_enc,
       if (disp == 0 && no_relocation) {
         // [rsp]
         // [00 reg 100][00 100 100]
-        emit_modrm_sib(0b00, reg_enc, 0b100,
-                       Address::times_1, 0b100, 0b100);
+        emit_modrm_sib(0x0, reg_enc, 0x4,
+                       Address::times_1, 0x4, 0x4);
       } else if (emit_compressed_disp_byte(disp) && no_relocation) {
         // [rsp + imm8]
         // [01 reg 100][00 100 100] disp8
-        emit_modrm_sib_disp8(0b01, reg_enc, 0b100,
-                             Address::times_1, 0b100, 0b100,
+        emit_modrm_sib_disp8(0x1, reg_enc, 0x4,
+                             Address::times_1, 0x4, 0x4,
                              disp);
       } else {
         // [rsp + imm32]
         // [10 reg 100][00 100 100] disp32
-        emit_modrm_sib(0b10, reg_enc, 0b100,
-                       Address::times_1, 0b100, 0b100);
+        emit_modrm_sib(0x2, reg_enc, 0x4,
+                       Address::times_1, 0x4, 0x4);
         emit_data(disp, rspec, disp32_operand);
       }
     } else {
@@ -583,12 +583,12 @@ void Assembler::emit_operand_helper(int reg_enc, int base_enc, int index_enc,
       } else if (emit_compressed_disp_byte(disp) && no_relocation) {
         // [base + disp8]
         // [01 reg base] disp8
-        emit_modrm_disp8(0b01, reg_enc, base_enc,
+        emit_modrm_disp8(0x1, reg_enc, base_enc,
                          disp);
       } else {
         // [base + disp32]
         // [10 reg base] disp32
-        emit_modrm(0b10, reg_enc, base_enc);
+        emit_modrm(0x2, reg_enc, base_enc);
         emit_data(disp, rspec, disp32_operand);
       }
     }
@@ -598,15 +598,15 @@ void Assembler::emit_operand_helper(int reg_enc, int base_enc, int index_enc,
       // base == noreg
       // [index*scale + disp]
       // [00 reg 100][ss index 101] disp32
-      emit_modrm_sib(0b00, reg_enc, 0b100,
-                     scale, index_enc, 0b101 /* no base */);
+      emit_modrm_sib(0x0, reg_enc, 0x4,
+                     scale, index_enc, 0x5 /* no base */);
       emit_data(disp, rspec, disp32_operand);
     } else if (!no_relocation) {
       // base == noreg, index == noreg
       // [disp] (64bit) RIP-RELATIVE (32bit) abs
       // [00 reg 101] disp32
 
-      emit_modrm(0b00, reg_enc, 0b101 /* no base */);
+      emit_modrm(0x0, reg_enc, 0x5 /* no base */);
       // Note that the RIP-rel. correction applies to the generated
       // disp field, but _not_ to the target address in the rspec.
 
@@ -627,8 +627,8 @@ void Assembler::emit_operand_helper(int reg_enc, int base_enc, int index_enc,
       // 32bit never did this, did everything as the rip-rel/disp code above
       // [disp] ABSOLUTE
       // [00 reg 100][00 100 101] disp32
-      emit_modrm_sib(0b00, reg_enc, 0b100 /* no base */,
-                     Address::times_1, 0b100, 0b101);
+      emit_modrm_sib(0x0, reg_enc, 0x4 /* no base */,
+                     Address::times_1, 0x4, 0x5);
       emit_data(disp, rspec, disp32_operand);
     }
   }
